@@ -1,0 +1,138 @@
+---
+title: "Dorsal Brightness Models"
+author: "Jonathan Nations"
+output: html_document
+---
+### Dorsal Brightness Models
+Models from Marcondes et al. "Disentangling the roles of climate and habitat preference as drivers of Gloger’s rule in a large family of tropical passerine birds (Furnariidae)"
+
+#### Setup
+```{r, results='hide'}
+knitr::opts_knit$set(root.dir = "/Users/....")
+```
+
+```{r results='hide'}
+library(brms)
+library(phytools)
+library(tidyverse)
+```
+
+Read in and scale data
+```{r results='hide'}
+tr <- read.tree("tr.nwk")
+dat <- read.csv("dat.csv", header = T)
+dat$scaled_dors.PC1 <- scale(dat$dors.PC1)
+dat$scaled_vent.PC1 <- scale(dat$vent.PC1)
+```
+
+Generate phylogenetic covarience matrix
+```{r results='hide'}
+inv.phylo <- MCMCglmm::inverseA(tr, nodes = "TIPS", scale = TRUE)
+A <- solve(inv.phylo$Ainv)
+rownames(A) <- rownames(inv.phylo$Ainv)
+```
+
+###Dorsal Null Model
+```{r warning=F, results='hide'}
+mod0 <- brm(scaled_dors.PC1 ~ 0 + (1|taxon),
+         data = dat,
+         cov_ranef = list(taxon = A),
+         prior = c(
+         set_prior("normal(0,0.3)", class = "sd", coef = "Intercept", group = "taxon"),
+        set_prior("normal(3, 0.5)", class = "alpha"),
+        set_prior("normal(2,0.5)", class = "sigma")),
+         save_all_pars = TRUE,
+         family = skew_normal,
+         iter = 10000, 
+         inits = 0,
+	        cores = parallel::detectCores(),
+          control = list(adapt_delta = 0.99, max_treedepth = 15),
+        #This line of code below saves the output to an .rds
+         file = "Dorsal_Null.Rds")
+```
+
+```{r}
+summary(mod0)
+```
+
+```{r}
+plot(mod0, N=3, ask=F)
+```
+
+###Model 1
+Testing the hypothesis that if Gloger’s rule is driven primarily by climate, we expect that species inhabiting rainier and warmer areas will tend to be darker than those from dry and cool locations, regardless of their habitat preference. 
+
+#### The model structure
+This is an interaction model with two climatic variables, and the phylogeny as a group level effect
+
+```{r, warning=F, results='hide'}
+mod1 <- brm(scaled_dors.PC1 ~ 1 + scaled_temp*scaled_precip + (1|taxon),
+          data = dat,
+	        cov_ranef = list(tr = A),
+	        iter = 10000, 
+          family = skew_normal, 
+          prior = c(
+          set_prior("normal(0,1)", class = "b"),
+          set_prior("normal(0,1)", class = "Intercept"),
+          set_prior("normal(0,0.5)", class = "sd", group = "taxon"),
+          set_prior("normal(0,0.3)", class = "sd", coef = "Intercept", group = "taxon"),
+         set_prior("normal(3, 0.5)", class = "alpha"),
+         set_prior("normal(2,0.5)", class = "sigma")),
+	       save_all_pars = TRUE,
+         inits = 0,
+	       cores = 4,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "mod1_20200109.Rds")
+``` 
+
+
+```{r}
+plot(mod1, ask = F, N = 3)
+```
+
+
+```{r}
+summary(mod1)
+```
+
+
+###Model 2
+Testing the hypothesis that  if Gloger’s rule is mainly a result of birds adapting to be darker in darker (forest) habitats, we might expect bird species occupying forest habitats to be darker than their nonforest-based relatives, regardless of their climatic regimes.
+
+#### The model structure
+This is a model with two continuous climatic variables, one discrete habitat predictor, and the phylogeny as a group level effect
+
+```{r, warning=F}
+mod2 <- brm(scaled_dors.PC1 ~ 0 + scaled_precip + scaled_temp + Habitat + (1 | taxon),
+          data = dat,
+	        cov_ranef = list(tr = A),
+          iter = 10000, family = skew_normal, 
+          prior = c(
+          set_prior("normal(0,1)", class = "b"),
+          set_prior("normal(0,0.5)", class = "sd", group = "taxon"),
+          set_prior("normal(0,0.3)", class = "sd", coef = "Intercept", group = "taxon"),
+         set_prior("normal(3, 0.5)", class = "alpha"),
+         set_prior("normal(2,0.5)", class = "sigma")),
+         save_all_pars = TRUE,
+         inits = 0,
+         cores = 4,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "mod2_20200109.Rds")
+```
+
+```{r}
+summary(mod2)
+```
+
+```{r}
+plot(mod2, ask = F, N = 3)
+```
+
+WAIC analysis for all three dorsal models
+```{r}
+w.aic=waic(mod0, mod1, mod2)
+```
+
+```{r warning=F}
+w.aic
+```
