@@ -4,4 +4,6 @@ This repository contains data and data analysis scripts for the Marcondes et al.
 
 Phylogenetic tree file will be added pending acceptance
 
-[![Stars over time](https://starchart.cc/jonnations/Gloger_rule_Furnariidae.svg)](https://starchart.cc/Gloger_rule_Furnariidae)
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/jonnations/Gloger_rule_Furnariidae.svg)](https://starchart.cc/Gloger_rule_Furnariidae)
