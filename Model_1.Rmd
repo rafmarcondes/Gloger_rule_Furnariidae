@@ -1,0 +1,415 @@
+---
+title: "Model 1"
+author: "Jon Nations"
+date: "8/30/2020"
+output: html_document
+---
+# Model 1
+From the manuscript "Rethinking Gloger’s Rule: climate, light environments and color in a large family of tropical birds (Furnariidae)" by Marcondes, Nations, et al. 
+
+Model 1 models the effect of climate on plumage brightness. Plumage brightness and redness are response variables, and precipitation, temperature, and the interaction between precipitation and temperature are the predictor variables. Also, as redness is calculated using the slope of the regression of percent reflectance on wavelength, redness and brightness can act as confounds. Therefore we included brightess in models using redness as responses, and visa-versa, to correct this confound. 
+
+#Setup
+#### Set path
+```{r, results='hide', include = F}
+knitr::opts_knit$set(root.dir = "/Users/.....")
+```
+
+####Load Packages
+```{r results = 'hide', include = F}
+pacman::p_load(tidyverse, brms, phytools)
+```
+
+#### Load Data
+And scale each variable to unity: mean of 0, sd of 1. 
+This dimensionless variable places precip, temperature, redness, and brightness on the same scale, which improves model mixing and informs our use of regularizing priors. 
+```{r}
+dat <- read_csv("Data_ALL.csv")
+dat$r.belly <- scale(dat$bell_red)
+dat$b.belly <- scale(dat$bell_bright)
+dat$r.throat <- scale(dat$thro_red)
+dat$b.throat <- scale(dat$thro_bright)
+dat$r.breast <- scale(dat$brea_red)
+dat$b.breast <- scale(dat$brea_bright)
+dat$r.back <- scale(dat$back_red)
+dat$b.back <- scale(dat$back_bright)
+dat$r.crown <- scale(dat$crow_red)
+dat$b.crown <- scale(dat$crow_bright)
+dat$r.rump <- scale(dat$rump_red)
+dat$b.rump <- scale(dat$rump_bright)
+dat$r.tail <- scale(dat$tail_red)
+dat$b.tail <- scale(dat$tail_bright)
+taxon <- read.tree("tr.nwk")
+```
+prepare phylogenetic correlation matrix
+```{r}
+inv.phylo <- MCMCglmm::inverseA(taxon, nodes = "TIPS", scale = TRUE)
+A <- solve(inv.phylo$Ainv)
+rownames(A) <- rownames(inv.phylo$Ainv)
+```
+#Models
+Warning! These models take a bit of time to run. Up to an hour each (but usually faster!) Adjust the `cores = ` argument up to a level appropriate for your machine. Normally I use 4 on my older Mac laptop.
+
+In brms, the `y ~ x * z` notation is short for `y ~ x + z + x*z`
+`x*z` is the interaction term.
+`(1 | gr(taxon, cov = A))` is the group-level parameter. It uses the phylogenetic relationships to model the error. This structure assumes that as phylogenetic distance increases, difference in the response variable increases as well. The ratio of the contribution od phylogenetic error from this relationship and the error (sigma) in the linear model demonstrates the ammount of "phylogenetic effect." See `brms` phylogenetics vignette for more info. 
+
+The `file = M1_bcrown.Rds` term saves the model object as an .Rds file, so the model does not have to be run a second time. See `brms::brm` for more details.
+
+### Dorsal Patches
+Crown, Back, Rump, and Tail
+
+#### Crown Brightness
+```{r}
+bcrown <- brm(b.crown ~1 + scaled_precip * scaled_temp  + r.crown + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0,0.25)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_bcrown.Rds")
+```
+
+```{r}
+plot(bcrown, ask=F, N=4)
+```
+
+#### Crown Redness
+```{r}
+rcrown <- brm(r.crown ~1 + scaled_precip * scaled_temp  + b.crown + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.4,0.05)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rcrown.Rds")
+```
+
+```{r}
+plot(rcrown, ask=F, N=4)
+```
+
+#### Back Brightness
+```{r}
+bback <- brm(b.back ~1 + scaled_precip * scaled_temp  + r.back + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 1000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0.4,0.05)", class = "sigma"),
+            set_prior("normal(1,0.25)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_bback.Rds")
+```
+
+```{r}
+plot(bback, ask=F, N=3)
+```
+
+#### Back Redness
+```{r}
+rback <- brm(r.back ~1 + scaled_precip * scaled_temp  + b.back + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 1000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,0.25)", class = "sigma"),
+            set_prior("normal(1,0.25)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rback.Rds")
+```
+
+```{r}
+plot(rback, ask=F, N=3)
+```
+
+#### Rump Brightness
+```{r}
+brump <- brm(b.rump ~1 + scaled_precip * scaled_temp  + r.rump + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.35,0.05)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_brump.Rds")
+```
+
+```{r}
+plot(brump, ask=F, N=4)
+```
+
+
+#### Rump Redness
+```{r}
+rrump <- brm(r.rump ~1 + scaled_precip * scaled_temp  + b.rump + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.45,0.1)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rrump.Rds")
+```
+
+```{r}
+plot(rrump, ask=F, N=4)
+```
+
+#### Tail Brightness
+```{r}
+btail <- brm(b.tail ~ 1 + scaled_precip * scaled_temp  + r.tail + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0.35,0.05)", class = "sigma"),
+            set_prior("normal(1,0.25)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_btail.Rds")
+```
+
+```{r}
+plot(btail, N=4, ask=F)
+```
+
+#### Tail Brightness
+```{r}
+rtail <- brm(r.tail ~1 + scaled_precip * scaled_temp  + b.tail + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.35,0.05)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rtail.Rds")
+```  
+
+```{r}
+plot(rtail, ask=F, N=4)
+```
+
+### Ventral Patches
+#### Throat Brightness
+```{r this one!}
+bthroat <- brm(b.throat ~1 + scaled_precip * scaled_temp  + r.throat + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 1000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0.3, 0.05)", class = "sigma"),
+            set_prior("normal(1,0.25)", class = "sd")),
+            #set_prior("normal(0.35,0.05)", class = "sigma"),
+            #set_prior("normal(0.8,0.1)", class = "sd")),
+         #save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_bthroat.Rds")
+```
+
+```{r}
+plot(bthroat, ask=F, N=3)
+```
+
+#### Throat Redness
+```{r}
+rthroat <- brm(r.throat ~1 + scaled_precip * scaled_temp  + b.throat + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.45,0.1)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rthroat.Rds")
+```
+
+```{r}
+plot(rthroat, ask=F, N=4)
+```
+
+#### Breast Brightness
+```{r}
+bbreast <- brm(b.breast ~1 + scaled_precip * scaled_temp  + r.breast + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.4,0.05)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_bbreast.Rds")
+```
+
+```{r}
+plot(bbreast, ask=F, N=4)
+```
+
+#### Breast Redness
+```{r}
+rbreast <- brm(r.breast ~1 + scaled_precip * scaled_temp  + b.breast + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          refresh = 1000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),             
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.5)", class = "sigma"),
+            set_prior("normal(0.4,0.05)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rbreast_.Rds")
+```
+
+```{r}
+plot(rbreast, ask=F, N=4)
+```
+
+#### Belly Brightness
+```{r}
+bbelly <- brm(b.belly ~1 + scaled_precip * scaled_temp  + r.belly + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.35,0.05)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_bbelly.Rds")
+```
+
+```{r}
+plot(bbelly, ask=F, N=4)
+```
+
+#### Belly Redness
+```{r}
+rbelly <- brm(r.belly ~1 + scaled_precip * scaled_temp  + b.belly + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = gaussian(),
+          iter = 10000,
+          #refresh = 2000,
+          prior = c(
+            set_prior("normal(0,1)", class = "b"),
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(1,0.25)", class = "sd"),
+            set_prior("normal(0.4,0.05)", class = "sigma")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains = 4,
+         cores = 2,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M1_rbelly.Rds")
+```
+
+```{r}
+plot(rbelly, ask=F, N=4)
+```
+
+# That's all!
