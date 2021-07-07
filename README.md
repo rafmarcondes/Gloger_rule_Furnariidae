@@ -1,6 +1,14 @@
 # Gloger_rule_Furnariidae
 
-This repository contains data and data analysis scripts for the Marcondes et al. manuscript "Disentangling the roles of climate and habitat preference as drivers of Gloger’s rule in a large family of tropical passerine birds (Furnariidae)"
+This repository contains data and data analysis scripts for the Marcondes, Nations, et al. manuscript "Rethinking Gloger’s Rule: climate, light environments and color in a large family of tropical birds (Furnariidae)"
+
+
+
+[![DOI](https://zenodo.org/badge/249482943.svg)](https://zenodo.org/badge/latestdoi/249482943)
+
+
+
+There is a lot of text in the `.Rmd` files that explains what's going on, but feel free to reach out with questions!
 
 Phylogenetic tree file will be added pending acceptance
 

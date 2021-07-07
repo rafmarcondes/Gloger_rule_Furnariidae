@@ -1,0 +1,539 @@
+---
+title: "Model 3 and Model Comparison"
+author: "Jon Nations"
+date: "8/30/2020"
+output: html_document
+---
+
+# Model 3 and WAIC
+From the manuscript "Rethinking Gloger’s Rule: climate, light environments and color in a large family of tropical birds (Furnariidae)" by Marcondes, Nations, et al. 
+
+Model 3 acts more or less as a "null" model. It is possible that habitat and climate are not in fact good predictors of plumage brightness, but instead the evolutionary history of Furnariidae explains all the differences in plumage. To test this, we use brightness or redness as responses, and use only the phylogenetic correlation matrix as a predictor. Then we use the Wantanabe-Akaike Information Criterion to compare the predictive power of these models. We use the `waic()` function in `brms`, which calls the package `loo`. 
+
+Here we will calculate Model 3 for each patch, then load models 1 and 2 using the names from the `file` argument in markdown files Model_1.Rmd and Model_2.Rmd, then run the `waic`. 
+
+#Setup
+#### Set path
+```{r, results='hide', include = F}
+knitr::opts_knit$set(root.dir = "/Users/.....")
+```
+
+####Load Packages
+```{r}
+pacman::p_load(idyverse, tidybayes, brms, phytools)
+```
+#### Load Data
+scale to create a dimensionless variable
+```{r results = 'hide', message =FALSE, warning=FALSE, include = F}
+dat <- read.csv("Data_ALL.csv")
+dat$r.belly <- scale(dat$bell_red)
+dat$b.belly <- scale(dat$bell_bright)
+dat$r.throat <- scale(dat$thro_red)
+dat$b.throat <- scale(dat$thro_bright)
+dat$r.breast <- scale(dat$brea_red)
+dat$b.breast <- scale(dat$brea_bright)
+dat$r.back <- scale(dat$back_red)
+dat$b.back <- scale(dat$back_bright)
+dat$r.crown <- scale(dat$crow_red)
+dat$b.crown <- scale(dat$crow_bright)
+dat$r.rump <- scale(dat$rump_red)
+dat$b.rump <- scale(dat$rump_bright)
+dat$r.tail <- scale(dat$tail_red)
+dat$b.tail <- scale(dat$tail_bright)
+taxon <- read.tree("tr.nwk")
+```
+
+set tree
+```{r}
+inv.phylo <- MCMCglmm::inverseA(taxon, nodes = "TIPS", scale = TRUE)
+A <- solve(inv.phylo$Ainv)
+rownames(A) <- rownames(inv.phylo$Ainv)
+```
+
+# Models and WAIC
+
+We will run each one in turn. 
+### Dorsal Models
+#### Crown Brightness
+Load old models
+```{r}
+bCrown1 <- read_rds("/Users/....../M1_bcrown.Rds")
+bCrown2 <- read_rds("/Users/....../M2_bcrown.Rds")
+```
+run model 3
+```{r}
+rCrown3 <- brm(b.crown ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bcrown.Rds")
+```
+WAIC
+```{r}
+rCrown <- WAIC(rCrown1, rCrown2, rCrown3)
+rCrown
+```
+Remove models
+```{r}
+rm(rCrown1)
+rm(rCrown2)
+rm(rCrown3)
+```
+
+#### Crown Redness
+```{r}
+rCrown1 <- read_rds("/Users/....../M1_rcrown.Rds")
+rCrown2 <- read_rds("/Users/....../M2_rcrown.Rds")
+```
+run model 3
+```{r}
+rCrown3 <- brm(b.crown ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rcrown.Rds")
+```
+WAIC
+```{r}
+rCrown <- WAIC(rCrown1, rCrown2, rCrown3)
+rCrown
+```
+Remove models
+```{r}
+rm(rCrown1)
+rm(rCrown2)
+rm(rCrown3)
+```
+
+#### Back Brightness
+Load old models
+```{r}
+bBack1 <- read_rds("/Users/....../M1_bBack.Rds")
+bBack2 <- read_rds("/Users/....../M2_bBack.Rds")
+```
+run model 3
+```{r}
+rBack3 <- brm(b.Back ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bBack.Rds")
+```
+WAIC
+```{r}
+rBack <- WAIC(rBack1, rBack2, rBack3)
+rBack
+```
+Remove models
+```{r}
+rm(rBack1)
+rm(rBack2)
+rm(rBack3)
+```
+
+#### Back Redness
+```{r}
+rBack1 <- read_rds("/Users/....../M1_rBack.Rds")
+rBack2 <- read_rds("/Users/....../M2_rBack.Rds")
+```
+run model 3
+```{r}
+rBack3 <- brm(b.Back ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rBack.Rds")
+```
+WAIC
+```{r}
+rBack <- WAIC(rBack1, rBack2, rBack3)
+rBack
+```
+Remove models
+```{r}
+rm(rBack1)
+rm(rBack2)
+rm(rBack3)
+```
+
+#### Rump Brightness
+Load old models
+```{r}
+bRump1 <- read_rds("/Users/....../M1_bRump.Rds")
+bRump2 <- read_rds("/Users/....../M2_bRump.Rds")
+```
+run model 3
+```{r}
+rRump3 <- brm(b.Rump ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bRump.Rds")
+```
+WAIC
+```{r}
+rRump <- WAIC(rRump1, rRump2, rRump3)
+rRump
+```
+Remove models
+```{r}
+rm(rRump1)
+rm(rRump2)
+rm(rRump3)
+```
+
+#### Rump Redness
+```{r}
+rRump1 <- read_rds("/Users/....../M1_rRump.Rds")
+rRump2 <- read_rds("/Users/....../M2_rRump.Rds")
+```
+run model 3
+```{r}
+rRump3 <- brm(b.Rump ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rRump.Rds")
+```
+WAIC
+```{r}
+rRump <- WAIC(rRump1, rRump2, rRump3)
+rRump
+```
+Remove models
+```{r}
+rm(rRump1)
+rm(rRump2)
+rm(rRump3)
+```
+
+#### Tail Brightness
+Load old models
+```{r}
+bTail1 <- read_rds("/Users/....../M1_bTail.Rds")
+bTail2 <- read_rds("/Users/....../M2_bTail.Rds")
+```
+run model 3
+```{r}
+rTail3 <- brm(b.Tail ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bTail.Rds")
+```
+WAIC
+```{r}
+rTail <- WAIC(rTail1, rTail2, rTail3)
+rTail
+```
+Remove models
+```{r}
+rm(rTail1)
+rm(rTail2)
+rm(rTail3)
+```
+
+#### Tail Redness
+```{r}
+rTail1 <- read_rds("/Users/....../M1_rTail.Rds")
+rTail2 <- read_rds("/Users/....../M2_rTail.Rds")
+```
+run model 3
+```{r}
+rTail3 <- brm(b.Tail ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rTail.Rds")
+```
+WAIC
+```{r}
+rTail <- WAIC(rTail1, rTail2, rTail3)
+rTail
+```
+Remove models
+```{r}
+rm(rTail1)
+rm(rTail2)
+rm(rTail3)
+```
+
+###Ventral Models
+#### Throat Brightness
+Load old models
+```{r}
+bThroat1 <- read_rds("/Users/....../M1_bThroat.Rds")
+bThroat2 <- read_rds("/Users/....../M2_bThroat.Rds")
+```
+run model 3
+```{r}
+rThroat3 <- brm(b.Throat ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bThroat.Rds")
+```
+WAIC
+```{r}
+rThroat <- WAIC(rThroat1, rThroat2, rThroat3)
+rThroat
+```
+Remove models
+```{r}
+rm(rThroat1)
+rm(rThroat2)
+rm(rThroat3)
+```
+
+#### Throat Redness
+```{r}
+rThroat1 <- read_rds("/Users/....../M1_rThroat.Rds")
+rThroat2 <- read_rds("/Users/....../M2_rThroat.Rds")
+```
+run model 3
+```{r}
+rThroat3 <- brm(b.Throat ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rThroat.Rds")
+```
+WAIC
+```{r}
+rThroat <- WAIC(rThroat1, rThroat2, rThroat3)
+rThroat
+```
+Remove models
+```{r}
+rm(rThroat1)
+rm(rThroat2)
+rm(rThroat3)
+```
+
+#### Breast Brightness
+Load old models
+```{r}
+bBreast1 <- read_rds("/Users/....../M1_bBreast.Rds")
+bBreast2 <- read_rds("/Users/....../M2_bBreast.Rds")
+```
+run model 3
+```{r}
+rBreast3 <- brm(b.Breast ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bBreast.Rds")
+```
+WAIC
+```{r}
+rBreast <- WAIC(rBreast1, rBreast2, rBreast3)
+rBreast
+```
+Remove models
+```{r}
+rm(rBreast1)
+rm(rBreast2)
+rm(rBreast3)
+```
+
+#### Breast Redness
+```{r}
+rBreast1 <- read_rds("/Users/....../M1_rBreast.Rds")
+rBreast2 <- read_rds("/Users/....../M2_rBreast.Rds")
+```
+run model 3
+```{r}
+rBreast3 <- brm(b.Breast ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rBreast.Rds")
+```
+WAIC
+```{r}
+rBreast <- WAIC(rBreast1, rBreast2, rBreast3)
+rBreast
+```
+Remove models
+```{r}
+rm(rBreast1)
+rm(rBreast2)
+rm(rBreast3)
+```
+
+#### Belly Brightness
+Load old models
+```{r}
+bBelly1 <- read_rds("/Users/....../M1_bBelly.Rds")
+bBelly2 <- read_rds("/Users/....../M2_bBelly.Rds")
+```
+run model 3
+```{r}
+rBelly3 <- brm(b.Belly ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_bBelly.Rds")
+```
+WAIC
+```{r}
+rBelly <- WAIC(rBelly1, rBelly2, rBelly3)
+rBelly
+```
+Remove models
+```{r}
+rm(rBelly1)
+rm(rBelly2)
+rm(rBelly3)
+```
+
+#### Belly Redness
+```{r}
+rBelly1 <- read_rds("/Users/....../M1_rBelly.Rds")
+rBelly2 <- read_rds("/Users/....../M2_rBelly.Rds")
+```
+run model 3
+```{r}
+rBelly3 <- brm(b.Belly ~ 1 + (1 | gr(taxon, cov = A)),
+          data = dat,
+          data2 = list(A = A),
+          family = "gaussian",
+           iter = 10000,
+          prior = c(
+            set_prior("normal(0,1)", class = "Intercept"),
+            set_prior("normal(0,1)", class = "sd")),
+         save_all_pars = FALSE,
+         inits = 0,
+         chains= 4,
+         cores = 1,
+         control = list(adapt_delta = 0.99, max_treedepth = 15),
+         file = "M3_rBelly.Rds")
+```
+WAIC
+```{r}
+rBelly <- WAIC(rBelly1, rBelly2, rBelly3)
+rBelly
+```
+Remove models
+```{r}
+rm(rBelly1)
+rm(rBelly2)
+rm(rBelly3)
+```
